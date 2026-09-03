@@ -1,0 +1,5 @@
+#Configurações do Cliente
+#Thu Sep 03 13:48:58 GMT-03:00 2026
+ServerIp=127.0.0.1
+ServerPort=34345
+Token={"username"\:"thomas","password"\:"thomas","token"\:"968d9a2b-c068-4f24-bf1b-a6e7c77c40c9"}
