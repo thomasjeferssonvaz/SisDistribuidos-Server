@@ -1,6 +1,8 @@
 package mikrolabs.dev.sisdistribuidosServer.DTOs;
 
+import com.google.gson.JsonElement;
+
 public record Request(
-        String action,
-        String data
+        String method,
+        JsonElement data
 ) {}

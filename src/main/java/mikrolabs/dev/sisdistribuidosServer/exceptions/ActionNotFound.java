@@ -6,13 +6,14 @@ import mikrolabs.dev.sisdistribuidosServer.DTOs.Response;
 public class ActionNotFound extends BaseException {
     Request request;
 
-    public ActionNotFound(String message, Request request) {
-        super("Ação desconhecida: " + request.action());
+    public ActionNotFound(Request request) {
+        super("Ação desconhecida: " + request.method());
         this.request = request;
     }
 
+
     @Override
     public Response toResponse() {
-        return Response.error(404, "Ação desconhecida: " + this.request.action());
+        return Response.error(404, getMessage());
     }
 }

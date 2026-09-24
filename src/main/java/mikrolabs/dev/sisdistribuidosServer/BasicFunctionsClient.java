@@ -1,12 +1,14 @@
 package mikrolabs.dev.sisdistribuidosServer;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
 import mikrolabs.dev.sisdistribuidosServer.DTOs.Request;
 import mikrolabs.dev.sisdistribuidosServer.DTOs.Response;
 import mikrolabs.dev.sisdistribuidosServer.exceptions.ActionNotFound;
 import mikrolabs.dev.sisdistribuidosServer.exceptions.BaseException;
 import mikrolabs.dev.sisdistribuidosServer.exceptions.EmptyAction;
+import mikrolabs.dev.sisdistribuidosServer.exceptions.EmptyData;
 
 import java.io.*;
 import java.net.Socket;
@@ -44,14 +46,15 @@ public class BasicFunctionsClient extends Thread {
                 Response response;
                 try {
                     Request request = gson.fromJson(jsonLine, Request.class);
-                    System.out.println(jsonLine);
-                    System.out.println(request);
+                    System.out.println("Received: " + jsonLine);
                     response = request != null ? executeAction(request) : Response.error(400, "request nulo");
                 } catch (BaseException e) {
                     response = e.toResponse();
                 } catch (JsonSyntaxException e) {
                     response = Response.error(400, "JSON malformado");
                 }
+                System.out.println("Sent: " + response);
+                System.out.println("Sent Json: " + gson.toJson(response));
                 out.println(gson.toJson(response));
 
             }
@@ -60,21 +63,25 @@ public class BasicFunctionsClient extends Thread {
         } finally {
             try {
                 if (!client.isClosed()) client.close();
-                System.out.println("Cliente desconectado: " + clientAddress);
+                System.out.println("Cliente desconectado: " + clientAddress + "\n");
             } catch (IOException e) {
                 System.err.println("Erro ao fechar conexão: " + e.getMessage());
             }
         }
     }
     private Response executeAction(Request request) throws BaseException {
-        if (request.action() == null || request.action().isBlank()) throw new EmptyAction();
+        if (request.method() == null || request.method().isBlank()) throw new EmptyAction();
 
-        String inputData = request.data() != null ? request.data() : "";
+        if (request.data() == null) throw new EmptyData();
 
-        return switch (request.action()) {
-            case "textToUpperCase" -> Response.success(inputData.toUpperCase());
+        JsonElement inputData  = gson.fromJson(request.data(), JsonElement.class);
+
+
+        return switch (request.method()) {
             case "login" -> userController.login(inputData);
-            default -> throw new ActionNotFound(inputData, request);
+            case "register" -> userController.register(inputData);
+            case "logout" -> userController.logout(inputData);
+            default -> new ActionNotFound(request).toResponse();
         };
     }
 
