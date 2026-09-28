@@ -37,11 +37,9 @@ public class BasicFunctionsClient extends Thread {
                         true
                 )
         ) {
-            String jsonLine;
-            while((jsonLine = in.readLine()) != null) {
+            String jsonLine = in.readLine();
+            if(jsonLine != null) {
                 jsonLine = jsonLine.trim();
-                if (jsonLine.isEmpty()) continue;
-                if("sair".equalsIgnoreCase(jsonLine)) break;
 
                 Response response;
                 try {
@@ -56,9 +54,9 @@ public class BasicFunctionsClient extends Thread {
                 System.out.println("Sent: " + response);
                 System.out.println("Sent Json: " + gson.toJson(response));
                 out.println(gson.toJson(response));
-
             }
         } catch (IOException e) {
+
             System.err.println("Erro de I/O com " + clientAddress + ": " + e.getMessage());
         } finally {
             try {

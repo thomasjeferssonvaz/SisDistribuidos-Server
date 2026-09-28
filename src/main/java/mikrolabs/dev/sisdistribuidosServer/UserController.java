@@ -50,7 +50,6 @@ public class UserController {
     public Response register(JsonElement inputData) throws BaseException {
         try {
             User user = gson.fromJson(inputData, User.class);
-            SecurityService.ValidationResultDTO validationResult = securityService.validate(user.password());
 
             if (user.name() == null || user.username() == null ||  user.password() == null) {
                 return Response.error(400, "Nome, usuário e senha são obrigatórios");
@@ -60,10 +59,12 @@ public class UserController {
                 return Response.error(400, "Nome, usuário e senha são obrigatórios");
             }
 
+            SecurityService.ValidationResultDTO validationResult = securityService.validate(user.password());
+
             if (!validationResult.isValid()) {
                 return Response.error(400, """
                         senha não compatível com os parâmetros necessários:\s
-                        Símbolos especiais liberados: #, ., *, &, %, $, @, !, (, ), -, _, =, +, ..\s
+                        Símbolos especiais liberados: #, ., *, &, %, $, @, !, (, ), -, _, =, +, .\s
                         Min caracteres: 8
                         Máx caracteres: 20
                        \s""");
