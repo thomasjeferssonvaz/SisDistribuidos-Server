@@ -52,7 +52,7 @@ public class BasicFunctionsClient extends Thread {
                     response = Response.error(400, "JSON malformado");
                 }
                 System.out.println("Sent: " + response);
-                System.out.println("Sent Json: " + gson.toJson(response));
+                //System.out.println("Sent Json: " + gson.toJson(response));
                 out.println(gson.toJson(response));
             }
         } catch (IOException e) {
@@ -61,7 +61,7 @@ public class BasicFunctionsClient extends Thread {
         } finally {
             try {
                 if (!client.isClosed()) client.close();
-                System.out.println("Cliente desconectado: " + clientAddress + "\n");
+                System.out.println("Cliente do IP: " + clientAddress + "recebeu a requisição\nSocket TCP fechado\n");
             } catch (IOException e) {
                 System.err.println("Erro ao fechar conexão: " + e.getMessage());
             }
@@ -79,6 +79,7 @@ public class BasicFunctionsClient extends Thread {
             case "login" -> userController.login(inputData);
             case "register" -> userController.register(inputData);
             case "logout" -> userController.logout(inputData);
+            case "getuser" ->userController.getUserByToken(inputData);
             default -> new ActionNotFound(request).toResponse();
         };
     }

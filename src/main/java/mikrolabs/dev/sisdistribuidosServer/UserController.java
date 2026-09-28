@@ -19,7 +19,7 @@ public class UserController {
     private static final UserRepository userRepository = new UserRepository();
     public static final SessionRepository sessionRepository = new SessionRepository();
     private final SecurityService securityService = new SecurityService();
-    public record LogoutRequest(UUID token) {}
+    public record Token(UUID token) {}
 
     public Response login(JsonElement inputData) {
         if (inputData == null) return Response.error(400, "Dados de login ausentes");
@@ -36,8 +36,9 @@ public class UserController {
                 UUID token = UUID.randomUUID();
                 JsonElement data = gson.toJsonTree(Map.of("token", token));
                 sessionRepository.registerSession(token, loggedUser);
-
-                System.out.println("Sessões: "+ sessionRepository.getAllSessions());
+                //System.out.println("User logged: " + loggedUser.get().username());
+                //System.out.println("User Logged" + loggedUser);
+                //System.out.println("Sessões: "+ sessionRepository.getAllSessions());
                 return Response.success("Login realizado com sucesso", data);
             }
 
@@ -69,10 +70,12 @@ public class UserController {
                         Máx caracteres: 20
                        \s""");
             }
-
-            if (userRepository.registerUser(user.name(), user.username(), user.password()).isPresent()) {
+            Optional<User> createdUser = userRepository.registerUser(user.name(), user.username(), user.password());
+            if (createdUser.isPresent()) {
+                System.out.println("Created User: " + createdUser);
                 return Response.success("Usuário criado com sucesso");
             }
+
 
             return new UserAlreadyExists(user.username()).toResponse();
         } catch (JsonSyntaxException e) {
@@ -80,12 +83,12 @@ public class UserController {
         }
     }
 
-    public Response logout(JsonElement inputData) {
+    public Response logout(JsonElement token) {
         try {
-            LogoutRequest request = gson.fromJson(inputData, LogoutRequest.class);
+            Token tokenJson = gson.fromJson(token, Token.class);
 
-            if (request != null && request.token() != null) {
-                if(sessionRepository.deleteSessionByToken(request.token())) {
+            if (tokenJson != null && tokenJson.token() != null) {
+                if(sessionRepository.deleteSessionByToken(tokenJson.token())) {
                     System.out.println("Sessões: "+ sessionRepository.getAllSessions());
                     return Response.success("Logout realizado com sucesso");
                 } else {
@@ -96,6 +99,29 @@ public class UserController {
             return Response.error(400, "Token não fornecido");
         } catch (Exception e) {
             return Response.error(400, "Formato do payload inválido");
+        }
+    }
+
+    public Response getUserByToken(JsonElement inputData) {
+        if (inputData == null) return Response.error(400, "nenhum usuário enviado");
+        try  {
+            Token tokenJson =  gson.fromJson(inputData, Token.class);
+            if (tokenJson != null && tokenJson.token() != null) {
+                Optional<User> user = sessionRepository.getUserByToken(tokenJson.token());
+
+                if(user.isPresent()) {
+                    JsonElement userData = gson.toJsonTree(Map.of(
+                            "username", user.get().name(),
+                            "name", user.get().username()
+                    ));
+                    return new Response(200, "Usuário encontrado com sucesso", userData);
+                }
+            }
+            return Response.error(400, "token nulo");
+        } catch (JsonSyntaxException e) {
+            return Response.error(500, "Erro no parse do token " + e.getMessage());
+        } catch  (Exception e) {
+            return Response.error(500, "Erro interno no servidor: " + e.getMessage());
         }
     }
 }

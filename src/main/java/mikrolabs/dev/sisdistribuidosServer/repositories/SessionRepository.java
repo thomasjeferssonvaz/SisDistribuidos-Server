@@ -22,6 +22,14 @@ public class SessionRepository {
         }
     }
 
+    public Optional<User> getUserByToken(UUID token){
+        if (token == null) return Optional.empty();
+        Optional<Session> session = getSessionByToken(token);
+        if (session.isEmpty()) return Optional.empty();
+        return session.flatMap(Session::user);
+
+    }
+
     public boolean deleteSessionByToken(UUID token){
         if (token == null) return false;
 

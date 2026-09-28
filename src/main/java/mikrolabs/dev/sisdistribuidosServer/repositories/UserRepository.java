@@ -23,6 +23,13 @@ public class UserRepository {
                 .findFirst();
     }
 
+    public Optional<User> getUserByUsername(String username) {
+        if (username == null) return Optional.empty();
+        return users.stream()
+                .filter(u -> Objects.equals(u.username(), username))
+                .findFirst();
+    }
+
     public Optional<User> getUserByObject(User user) {
         if (user.username() == null) return Optional.empty();
         return users.stream()
