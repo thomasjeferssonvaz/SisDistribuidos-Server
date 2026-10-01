@@ -16,7 +16,7 @@ public class Server {
             while(!server.isClosed()) {
                 try {
                     Socket client =  server.accept();
-                    System.out.println("IP: " + client.getInetAddress().getHostAddress() + "abriu uma requisição ao servidor");
+                    System.out.println("IP: " + client.getInetAddress().getHostAddress() + " abriu uma requisição ao servidor");
                     new BasicFunctionsClient(client, userController).start();
                 } catch (IOException e) {
                     System.err.println("Erro ao aceitar conexão: " + e.getMessage());

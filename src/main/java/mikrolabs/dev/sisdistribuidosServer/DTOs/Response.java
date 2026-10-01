@@ -13,6 +13,9 @@ public record Response(
     public static Response success(String result) {
         return new Response(200, result, null);
     }
+    public static Response created(String result) {
+        return new Response(201, result, null);
+    }
     public static Response error(int status, String message) {
         return new Response(status, message, null);
     }

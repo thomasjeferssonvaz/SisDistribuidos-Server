@@ -73,7 +73,7 @@ public class UserController {
             Optional<User> createdUser = userRepository.registerUser(user.name(), user.username(), user.password());
             if (createdUser.isPresent()) {
                 System.out.println("Created User: " + createdUser);
-                return Response.success("Usuário criado com sucesso");
+                return Response.created("Usuário criado com sucesso");
             }
 
 
