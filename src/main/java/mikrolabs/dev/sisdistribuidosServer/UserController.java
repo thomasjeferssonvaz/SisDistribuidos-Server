@@ -35,7 +35,7 @@ public class UserController {
             if (loggedUser.isPresent()) {
                 UUID token = UUID.randomUUID();
                 JsonElement data = gson.toJsonTree(Map.of("token", token));
-                sessionRepository.registerSession(token, loggedUser);
+                sessionRepository.registerSession(token, loggedUser.get().username());
                 //System.out.println("User logged: " + loggedUser.get().username());
                 //System.out.println("User Logged" + loggedUser);
                 //System.out.println("Sessões: "+ sessionRepository.getAllSessions());
@@ -86,7 +86,7 @@ public class UserController {
     public Response logout(JsonElement token) {
         try {
             Token tokenJson = gson.fromJson(token, Token.class);
-            if (!validateToken(tokenJson.token())) return Response.error(401, "Token inválido, tente relogar");
+            if (validateToken(tokenJson.token())) return Response.error(401, "Token inválido, tente relogar");
 
             if (tokenJson.token() != null) {
                 if(sessionRepository.deleteSessionByToken(tokenJson.token())) {
@@ -108,14 +108,15 @@ public class UserController {
         if (inputData == null) return Response.error(400, "nenhum usuário enviado");
         try  {
             Token tokenJson =  gson.fromJson(inputData, Token.class);
-            if (!validateToken(tokenJson.token())) return Response.error(401, "Token inválido, tente relogar");
+            if (validateToken(tokenJson.token())) return Response.error(401, "Token inválido, tente relogar");
             if (tokenJson.token() != null) {
-                Optional<User> user = sessionRepository.getUserByToken(tokenJson.token());
+                String username = sessionRepository.getUsernameByToken(tokenJson.token());
+                Optional<User> user = userRepository.getUserByUsername(username);
 
                 if(user.isPresent()) {
                     JsonElement userData = gson.toJsonTree(Map.of(
-                            "username", user.get().name(),
-                            "name", user.get().username()
+                            "username", user.get().username(),
+                            "name", user.get().name()
                     ));
                     return new Response(200, "Usuário encontrado com sucesso", userData);
                 }
@@ -129,6 +130,28 @@ public class UserController {
     }
 
     public boolean validateToken(UUID token) {
-        return sessionRepository.getSessionByToken(token).isPresent();
+        return sessionRepository.getSessionByToken(token).isEmpty();
+    }
+
+    public Response UpdateUserName(JsonElement inputData) {
+        record UpdateUserName(UUID token, String username, String name){}
+        try {
+            UpdateUserName receivedJson = gson.fromJson(inputData, UpdateUserName.class);
+            if (receivedJson.username == null) {
+                String userToBeUpdated = sessionRepository.getUsernameByToken(receivedJson.token());
+                Optional<User> updatedUser = userRepository.updateUserName(userToBeUpdated, receivedJson.name);
+                if (updatedUser.isEmpty()) return Response.error(404, "Token não encontrado");
+                System.out.println("Updated User: ");
+                return Response.success("Nome alterado com sucesso");
+            } else {
+                return Response.error(500, "Função de Admin, ainda não implementada");
+            }
+
+        } catch (Exception e) {
+            System.out.println();
+            return Response.error(400, "Formato do payload inválido");
+        }
+
+
     }
 }

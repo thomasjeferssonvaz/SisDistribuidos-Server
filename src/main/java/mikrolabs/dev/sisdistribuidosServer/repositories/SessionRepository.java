@@ -1,15 +1,14 @@
 package mikrolabs.dev.sisdistribuidosServer.repositories;
 
 import mikrolabs.dev.sisdistribuidosServer.DTOs.Session;
-import mikrolabs.dev.sisdistribuidosServer.DTOs.User;
 
 import java.util.*;
 
 public class SessionRepository {
     private final List<Session> sessions = Collections.synchronizedList(new ArrayList<>());
 
-    public void registerSession(UUID token, Optional<User> user){
-        Session session = new Session(token, user);
+    public void registerSession(UUID token, String username){
+        Session session = new Session(token, username);
         sessions.add(session);
     }
 
@@ -22,11 +21,13 @@ public class SessionRepository {
         }
     }
 
-    public Optional<User> getUserByToken(UUID token){
-        if (token == null) return Optional.empty();
+    public String getUsernameByToken(UUID token){
         Optional<Session> session = getSessionByToken(token);
-        if (session.isEmpty()) return Optional.empty();
-        return session.flatMap(Session::user);
+        if (session.isEmpty()) return null;
+        String username = sessions.stream()
+                .filter(s -> Objects.equals(s.token(), token))
+                .findFirst().get().username();
+        return username;
 
     }
 
@@ -35,7 +36,6 @@ public class SessionRepository {
 
         return sessions.removeIf(s -> Objects.equals(s.token(), token));
     }
-
 
     public List<Session> getAllSessions(){
         return sessions;

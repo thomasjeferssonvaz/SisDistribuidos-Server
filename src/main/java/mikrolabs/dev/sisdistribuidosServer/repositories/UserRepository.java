@@ -49,4 +49,32 @@ public class UserRepository {
 
     }
 
+    public Optional<User> updateUserName(String username, String newName) {
+        Optional<User> userBeingUpdated = getUserByUsername(username);
+        if (userBeingUpdated.isEmpty()) return Optional.empty();
+
+        User currentUser = userBeingUpdated.get();
+        User updatedUser = currentUser.withName(newName);
+
+        int index = users.indexOf(currentUser);
+        users.set(index, updatedUser);
+
+        return getUserByObject(updatedUser);
+    }
+
+    public Optional<User> updateUserPassword(String username, String newPassword) {
+        Optional<User> userBeingUpdated = getUserByUsername(username);
+        if (userBeingUpdated.isEmpty()) {
+            return Optional.empty();
+        }
+
+        User currentUser = userBeingUpdated.get();
+        User updatedUser = currentUser.withPassword(newPassword);
+
+        int index = users.indexOf(currentUser);
+        users.set(index, updatedUser);
+
+        return Optional.of(updatedUser);
+    }
+
 }

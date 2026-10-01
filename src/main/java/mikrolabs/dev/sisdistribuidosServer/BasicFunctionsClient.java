@@ -80,6 +80,7 @@ public class BasicFunctionsClient extends Thread {
             case "register" -> userController.register(inputData);
             case "logout" -> userController.logout(inputData);
             case "getuser" ->userController.getUserByToken(inputData);
+            case "updateusername" ->userController.UpdateUserName(inputData);
             default -> new ActionNotFound(request).toResponse();
         };
     }
