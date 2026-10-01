@@ -86,8 +86,9 @@ public class UserController {
     public Response logout(JsonElement token) {
         try {
             Token tokenJson = gson.fromJson(token, Token.class);
+            if (!validateToken(tokenJson.token())) return Response.error(401, "Token inválido, tente relogar");
 
-            if (tokenJson != null && tokenJson.token() != null) {
+            if (tokenJson.token() != null) {
                 if(sessionRepository.deleteSessionByToken(tokenJson.token())) {
                     System.out.println("Sessões: "+ sessionRepository.getAllSessions());
                     return Response.success("Logout realizado com sucesso");
@@ -103,10 +104,12 @@ public class UserController {
     }
 
     public Response getUserByToken(JsonElement inputData) {
+
         if (inputData == null) return Response.error(400, "nenhum usuário enviado");
         try  {
             Token tokenJson =  gson.fromJson(inputData, Token.class);
-            if (tokenJson != null && tokenJson.token() != null) {
+            if (!validateToken(tokenJson.token())) return Response.error(401, "Token inválido, tente relogar");
+            if (tokenJson.token() != null) {
                 Optional<User> user = sessionRepository.getUserByToken(tokenJson.token());
 
                 if(user.isPresent()) {
@@ -123,5 +126,9 @@ public class UserController {
         } catch  (Exception e) {
             return Response.error(500, "Erro interno no servidor: " + e.getMessage());
         }
+    }
+
+    public boolean validateToken(UUID token) {
+        return sessionRepository.getSessionByToken(token).isPresent();
     }
 }

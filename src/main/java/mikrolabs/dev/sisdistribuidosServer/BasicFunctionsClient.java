@@ -61,7 +61,7 @@ public class BasicFunctionsClient extends Thread {
         } finally {
             try {
                 if (!client.isClosed()) client.close();
-                System.out.println("Cliente do IP: " + clientAddress + "recebeu a requisição\nSocket TCP fechado\n");
+                System.out.println("Cliente do IP: " + clientAddress + " recebeu a requisição\nSocket TCP fechado\n");
             } catch (IOException e) {
                 System.err.println("Erro ao fechar conexão: " + e.getMessage());
             }
