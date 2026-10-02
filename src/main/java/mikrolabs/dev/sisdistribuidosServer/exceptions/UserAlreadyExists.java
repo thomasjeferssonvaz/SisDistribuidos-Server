@@ -4,7 +4,7 @@ import mikrolabs.dev.sisdistribuidosServer.DTOs.Response;
 
 public class UserAlreadyExists extends BaseException {
     public UserAlreadyExists(String username) {
-        super("User with the following name already exists: " + username);
+        super("O username já está em uso.");
     }
 
     @Override

@@ -44,14 +44,18 @@ public class BasicFunctionsClient extends Thread {
                 Response response;
                 try {
                     Request request = gson.fromJson(jsonLine, Request.class);
-                    System.out.println("Received: " + jsonLine);
+                    System.out.println("[SERVIDOR] Requisição recebida: " + jsonLine);
                     response = request != null ? executeAction(request) : Response.error(400, "request nulo");
                 } catch (BaseException e) {
                     response = e.toResponse();
                 } catch (JsonSyntaxException e) {
                     response = Response.error(400, "JSON malformado");
+                } catch (RuntimeException e) {
+                    e.printStackTrace();
+                    response = Response.error(500, "Erro interno no servidor");
                 }
-                System.out.println("Sent: " + response);
+
+                System.out.println("[SERVIDOR] Resposta enviada: " + response);
                 //System.out.println("Sent Json: " + gson.toJson(response));
                 out.println(gson.toJson(response));
             }
@@ -80,7 +84,7 @@ public class BasicFunctionsClient extends Thread {
             case "register" -> userController.register(inputData);
             case "logout" -> userController.logout(inputData);
             case "getuser" ->userController.getUserByToken(inputData);
-            case "updateusername" ->userController.UpdateUserName(inputData);
+            case "updateusername" ->userController.updateUserName(inputData);
             default -> new ActionNotFound(request).toResponse();
         };
     }

@@ -22,12 +22,9 @@ public class SessionRepository {
     }
 
     public String getUsernameByToken(UUID token){
-        Optional<Session> session = getSessionByToken(token);
-        if (session.isEmpty()) return null;
-        String username = sessions.stream()
-                .filter(s -> Objects.equals(s.token(), token))
-                .findFirst().get().username();
-        return username;
+        return getSessionByToken(token)
+                .map(Session::username)
+                .orElse(null);
 
     }
 
@@ -38,7 +35,9 @@ public class SessionRepository {
     }
 
     public List<Session> getAllSessions(){
-        return sessions;
+        synchronized (sessions) {
+            return List.copyOf(sessions);
+        }
     }
 
 
