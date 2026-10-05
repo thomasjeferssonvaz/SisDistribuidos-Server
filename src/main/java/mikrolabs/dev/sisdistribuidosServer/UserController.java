@@ -204,6 +204,91 @@ public class UserController {
 
     }
 
+    public Response updatePassword(JsonElement inputData) {
+        record UpdatePassword(UUID token, String username, String oldPassword, String newPassword){}
+        try {
+            UpdatePassword receivedJson = gson.fromJson(inputData, UpdatePassword.class);
+
+            if (receivedJson == null || receivedJson.token() == null) {
+                return missingTokenResponse();
+            }
+
+            if (isTokenInvalid(receivedJson.token())) {
+                return unauthorizedTokenResponse();
+            }
+
+            if (receivedJson.newPassword().equals(receivedJson.oldPassword())) return Response.error(401, "Senha atual incorreta");
+
+            if (!userValidationService.hasOnlyAllowedPasswordCharacters(receivedJson.newPassword())) return Response.error(400, """
+                        senha não compatível com os parâmetros mínimos necessários:\s
+                        Símbolos especiais liberados: #, ., *, &, %, $, @, !, (, ), -, _, =, +, .\s
+                        Min caracteres: 8
+                        Máx caracteres: 20
+                       \s""");
+
+            String authenticatedUsername =
+                    sessionRepository.getUsernameByToken(receivedJson.token());
+
+            if (Objects.equals(receivedJson.username(), authenticatedUsername)) {
+                Optional<User> updatedUser = userRepository.updateUserPassword(
+                        authenticatedUsername,
+                        receivedJson.newPassword()
+                );
+
+                if (updatedUser.isEmpty()) {
+                    return Response.error(404, "Usuário não encontrado");
+                }
+
+                System.out.println("Updated User: " + updatedUser.get());
+                return Response.success("Senha atualizada com sucesso");
+
+            }
+            return Response.error(401, "Função de Admin, ainda não implementada");
+
+        } catch (Exception e) {
+            System.out.println();
+            return Response.error(400, "Formato do payload inválido");
+        }
+
+    }
+
+    public Response deleteUser(JsonElement inputData) {
+        record UpdatePassword(UUID token, String username){}
+        try {
+            UpdatePassword receivedJson = gson.fromJson(inputData, UpdatePassword.class);
+
+            if (receivedJson == null || receivedJson.token() == null) {
+                return missingTokenResponse();
+            }
+
+            if (isTokenInvalid(receivedJson.token())) {
+                return unauthorizedTokenResponse();
+            }
+
+            String authenticatedUsername =
+                    sessionRepository.getUsernameByToken(receivedJson.token());
+
+            if (Objects.equals(receivedJson.username(), authenticatedUsername)) {
+                Optional<User> updatedUser = userRepository.deleteUser(
+                        authenticatedUsername
+                );
+
+                if (updatedUser.isEmpty()) {
+                    return Response.error(404, "Usuário não encontrado");
+                }
+
+                System.out.println("Deleted User: " + updatedUser.get());
+                return Response.success("Usuário deletado com sucesso");
+
+            }
+            return Response.error(401, "Função de Admin, ainda não implementada");
+
+        } catch (Exception e) {
+            System.out.println();
+            return Response.error(400, "Formato do payload inválido");
+        }
+    }
+
     private Response missingTokenResponse() {
         return Response.error(
                 400,

@@ -85,6 +85,8 @@ public class BasicFunctionsClient extends Thread {
             case "logout" -> userController.logout(inputData);
             case "getuser" ->userController.getUserByToken(inputData);
             case "updateusername" ->userController.updateUserName(inputData);
+            case "updateuserpassword" ->userController.updatePassword(inputData);
+            case "deleteuser" ->userController.deleteUser(inputData);
             default -> new ActionNotFound(request).toResponse();
         };
     }

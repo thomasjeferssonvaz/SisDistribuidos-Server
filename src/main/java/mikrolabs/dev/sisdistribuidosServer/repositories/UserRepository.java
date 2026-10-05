@@ -78,4 +78,14 @@ public class UserRepository {
         }
     }
 
+    public Optional<User> deleteUser(String username) {
+        synchronized(users) {
+            Optional<User> userBeingDeleted = getUserByUsername(username);
+            if (userBeingDeleted.isEmpty()) return Optional.empty();
+            User currentUser = userBeingDeleted.get();
+            users.remove(currentUser);
+            return Optional.of(currentUser);
+        }
+    }
+
 }
