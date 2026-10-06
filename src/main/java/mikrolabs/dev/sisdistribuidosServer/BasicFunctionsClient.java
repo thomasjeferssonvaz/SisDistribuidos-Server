@@ -75,7 +75,9 @@ public class BasicFunctionsClient extends Thread {
     private Response executeAction(Request request) throws BaseException {
         if (request.method() == null || request.method().isBlank()) throw new EmptyAction();
 
-        if (request.data() == null) throw new EmptyData();
+        if (request.data() == null && !"logout".equals(request.method())) {
+            throw new EmptyData();
+        }
 
         JsonElement inputData  = gson.fromJson(request.data(), JsonElement.class);
 
