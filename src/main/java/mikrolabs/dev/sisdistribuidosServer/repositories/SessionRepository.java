@@ -34,6 +34,12 @@ public class SessionRepository {
         return sessions.removeIf(s -> Objects.equals(s.token(), token));
     }
 
+    public void deleteSessionsByUsername(String username) {
+        synchronized (sessions) {
+            sessions.removeIf(session -> Objects.equals(session.username(), username));
+        }
+    }
+
     public List<Session> getAllSessions(){
         synchronized (sessions) {
             return List.copyOf(sessions);

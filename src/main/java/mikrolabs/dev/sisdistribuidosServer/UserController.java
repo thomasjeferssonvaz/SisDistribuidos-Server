@@ -24,7 +24,7 @@ public class UserController {
             new UserValidationService();
     public record Token(UUID token) {}
 
-    public Response login(JsonElement inputData) {
+    public synchronized Response login(JsonElement inputData) {
         if (inputData == null) return Response.error(400, "Dados de login ausentes");
 
         try {
@@ -43,12 +43,15 @@ public class UserController {
                 //System.out.println("User logged: " + loggedUser.get().username());
                 //System.out.println("User Logged" + loggedUser);
                 //System.out.println("Sessões: "+ sessionRepository.getAllSessions());
-                return Response.success("Login realizado com sucesso", data);
+                return Response.success("Sucesso no Login", data);
             }
 
             return Response.error(401, "Usuario ou senhas inválidos");
         } catch (JsonSyntaxException e) {
             return Response.error(400, "Payload de login inválido: " + inputData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Response.error(500, "Erro interno no servidor");
         }
     }
 
@@ -56,6 +59,9 @@ public class UserController {
         try {
             User user = gson.fromJson(inputData, User.class);
             if (user == null) return Response.error(400, "payload incorreta");
+            if (userRepository.getUserByUsername(user.username()).isPresent()) {
+                return new UserAlreadyExists(user.username()).toResponse();
+            }
 
             if (!userValidationService.isNameValid(user.name())) {
                 return Response.error(
@@ -71,20 +77,8 @@ public class UserController {
                 );
             }
 
-            if (!userValidationService.hasOnlyAllowedPasswordCharacters(user.password())) {
-                return Response.error(
-                        400,
-                        "O campo password não está no padrão esperado."
-                );
-            }
-
-            SecurityService.ValidationResultDTO validationResult = securityService.validate(user.password());
-
-            if (!validationResult.isValid()) {
-                return Response.error(
-                        400,
-                        "O campo password não está no padrão esperado."
-                );
+            if (!isPasswordValid(user.password())) {
+                return Response.error(400, "O campo password não está no padrão esperado.");
             }
             Optional<User> createdUser = userRepository.registerUser(user.name(), user.username(), user.password());
             if (createdUser.isPresent()) {
@@ -96,6 +90,9 @@ public class UserController {
             return new UserAlreadyExists(user.username()).toResponse();
         } catch (JsonSyntaxException e) {
             return Response.error(400, "Payload de cadastro inválido");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Response.error(500, "Erro interno no servidor");
         }
     }
 
@@ -112,9 +109,12 @@ public class UserController {
 
             sessionRepository.deleteSessionByToken(tokenJson.token());
             System.out.println("[CLIENTE] Logout: " + tokenJson.token());
-            return Response.success("Logout realizado com sucesso");
-        } catch (Exception e) {
+            return Response.success("Usuário deslogado com sucesso");
+        } catch (JsonSyntaxException e) {
             return Response.error(400, "Formato do payload inválido");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Response.error(500, "Erro interno no servidor");
         }
     }
 
@@ -195,64 +195,60 @@ public class UserController {
                 return Response.error(404, "Usuário não encontrado");
             }
 
-            return Response.success("Nome alterado com sucesso");
-        } catch (Exception e) {
-            System.out.println();
+            return Response.success("Nome do usuário atualizado com sucesso");
+        } catch (JsonSyntaxException e) {
             return Response.error(400, "Formato do payload inválido");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Response.error(500, "Erro interno no servidor");
         }
 
 
     }
 
     public Response updatePassword(JsonElement inputData) {
-        record UpdatePassword(UUID token, String username, String oldPassword, String newPassword){}
+        record UpdatePassword(UUID token, String username, String oldPassword, String newPassword) {}
         try {
-            UpdatePassword receivedJson = gson.fromJson(inputData, UpdatePassword.class);
-
-            if (receivedJson == null || receivedJson.token() == null) {
-                return missingTokenResponse();
+            UpdatePassword received = gson.fromJson(inputData, UpdatePassword.class);
+            if (received == null || received.token() == null) return missingTokenResponse();
+            if (isTokenInvalid(received.token())) return unauthorizedTokenResponse();
+            String username = sessionRepository.getUsernameByToken(received.token());
+            if (!Objects.equals(received.username(), username)) {
+                return Response.error(401, "Função de Admin, ainda não implementada");
             }
-
-            if (isTokenInvalid(receivedJson.token())) {
-                return unauthorizedTokenResponse();
+            Optional<User> current = userRepository.getUserByUsername(username);
+            if (current.isEmpty()) return Response.error(404, "Usuário não encontrado");
+            if (received.oldPassword() == null) {
+                return Response.error(400, "O campo oldPassword é obrigatório");
             }
-
-            if (receivedJson.newPassword().equals(receivedJson.oldPassword())) return Response.error(401, "Senha atual incorreta");
-
-            if (!userValidationService.hasOnlyAllowedPasswordCharacters(receivedJson.newPassword())) return Response.error(400, """
-                        senha não compatível com os parâmetros mínimos necessários:\s
-                        Símbolos especiais liberados: #, ., *, &, %, $, @, !, (, ), -, _, =, +, .\s
-                        Min caracteres: 8
-                        Máx caracteres: 20
-                       \s""");
-
-            String authenticatedUsername =
-                    sessionRepository.getUsernameByToken(receivedJson.token());
-
-            if (Objects.equals(receivedJson.username(), authenticatedUsername)) {
-                Optional<User> updatedUser = userRepository.updateUserPassword(
-                        authenticatedUsername,
-                        receivedJson.newPassword()
-                );
-
-                if (updatedUser.isEmpty()) {
-                    return Response.error(404, "Usuário não encontrado");
-                }
-
-                System.out.println("Updated User: " + updatedUser.get());
-                return Response.success("Senha atualizada com sucesso");
-
+            if (!Objects.equals(received.oldPassword(), current.get().password())) {
+                return Response.error(401, "Senha atual incorreta");
             }
-            return Response.error(401, "Função de Admin, ainda não implementada");
-
-        } catch (Exception e) {
-            System.out.println();
+            if (Objects.equals(received.oldPassword(), received.newPassword())) {
+                return Response.error(400, "A nova senha deve ser diferente da senha atual");
+            }
+            if (!isPasswordValid(received.newPassword())) {
+                return Response.error(400, "Senha fora do padrão");
+            }
+            Optional<User> updated = userRepository.updateUserPassword(
+                    username, received.oldPassword(), received.newPassword());
+            if (updated.isEmpty()) return Response.error(401, "Senha atual incorreta");
+            System.out.println("Updated User: " + updated.get());
+            return Response.success("Senha atualizada com sucesso");
+        } catch (JsonSyntaxException e) {
             return Response.error(400, "Formato do payload inválido");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Response.error(500, "Erro interno no servidor");
         }
-
     }
 
-    public Response deleteUser(JsonElement inputData) {
+    private boolean isPasswordValid(String password) {
+        return userValidationService.hasOnlyAllowedPasswordCharacters(password)
+                && securityService.validate(password).isValid();
+    }
+
+    public synchronized Response deleteUser(JsonElement inputData) {
         record UpdatePassword(UUID token, String username){}
         try {
             UpdatePassword receivedJson = gson.fromJson(inputData, UpdatePassword.class);
@@ -277,15 +273,18 @@ public class UserController {
                     return Response.error(404, "Usuário não encontrado");
                 }
 
+                sessionRepository.deleteSessionsByUsername(authenticatedUsername);
                 System.out.println("Deleted User: " + updatedUser.get());
                 return Response.success("Usuário deletado com sucesso");
 
             }
             return Response.error(401, "Função de Admin, ainda não implementada");
 
-        } catch (Exception e) {
-            System.out.println();
+        } catch (JsonSyntaxException e) {
             return Response.error(400, "Formato do payload inválido");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Response.error(500, "Erro interno no servidor");
         }
     }
 

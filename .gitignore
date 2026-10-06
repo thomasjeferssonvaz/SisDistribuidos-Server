@@ -35,9 +35,10 @@ build/
 ### Mac OS ###
 .DS_Store
 
-### Aplicação & Configurações Locais ###
+### AplicaÃ§Ã£o & ConfiguraÃ§Ãµes Locais ###
 config.properties
 config-*.properties
 *.properties
 !**/src/main/resources/**/*.properties
 config.txt
+/data/
